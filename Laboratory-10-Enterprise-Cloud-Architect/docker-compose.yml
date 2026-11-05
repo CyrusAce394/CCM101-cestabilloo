@@ -1,39 +1,41 @@
 
 services:
-  db:
-    image: mariadb:lts
+  database:
+    image: mysql:8.0
+    container_name: cloudnova-database
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${DB_NAME}
-      MARIADB_USER: ${DB_USER}
-      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpressuser
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: "1"
     volumes:
-      - database_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     networks:
-      - internal_network
+      - backend
 
   wordpress:
-    image: wordpress:latest
+    image: wordpress:php8.3-apache
+    container_name: cloudnova-wordpress
     restart: unless-stopped
     depends_on:
-      - db
+      - database
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     environment:
-      WORDPRESS_DB_HOST: db:3306
-      WORDPRESS_DB_NAME: ${DB_NAME}
-      WORDPRESS_DB_USER: ${DB_USER}
+      WORDPRESS_DB_HOST: database:3306
+      WORDPRESS_DB_USER: wordpressuser
       WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+      WORDPRESS_DB_NAME: wordpress
     volumes:
       - wordpress_data:/var/www/html
     networks:
-      - internal_network
+      - backend
 
 volumes:
-  database_data:
+  mysql_data:
   wordpress_data:
 
 networks:
-  internal_network:
+  backend:
     driver: bridge
