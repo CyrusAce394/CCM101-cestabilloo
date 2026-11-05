@@ -1,145 +1,282 @@
 # Laboratory 10 – The Enterprise Cloud Architect
 
-## Mission Overview
+## CloudNova Enterprise Web Portal
 
-This final laboratory activity focuses on designing, deploying, securing, and maintaining a private cloud infrastructure using virtualization, Linux, Docker, and automation.
+**Subject:** CCM101 – Cloud Computing  
+**Laboratory Activity:** 10  
+**Mission:** The Enterprise Cloud Architect  
+**Project:** CloudNova Enterprise Web Portal  
+**Platform:** Ubuntu Server 26.04.1 LTS  
+**Deployment:** Docker Compose, WordPress, and MySQL
 
-For this mission, I developed the **CloudNova Private Web Hosting Infrastructure**, a two-tier containerized web application hosted on Ubuntu Server 24.04 LTS inside Oracle VirtualBox.
+---
 
-The infrastructure uses WordPress as the web application and MariaDB as the database. Docker Compose manages the containers, persistent volumes protect application data, UFW provides host-based firewall configuration, and a custom Bash script supports automated database backups through Cron.
+## 1. Project Overview
 
-This project brings together the cloud computing concepts and technical skills introduced throughout Laboratory Activities 01–09.
+The CloudNova Enterprise Web Portal is a containerized web application deployed in a private virtualized server environment. This project was developed as the final requirement for CCM101 – Cloud Computing.
 
-## Objectives
+The purpose of the project is to demonstrate the integration of Linux server administration, virtualization, containerization, persistent storage, network security, automation, and disaster recovery.
 
-- Design a private cloud infrastructure using an architecture diagram.
-- Deploy and configure Ubuntu Server inside Oracle VirtualBox.
-- Establish network connectivity between Windows and the Ubuntu virtual machine.
-- Install and configure Docker Engine and Docker Compose.
-- Deploy a two-tier application consisting of WordPress and MariaDB.
-- Configure persistent storage for application and database data.
-- Implement firewall rules using UFW with a default-deny policy.
-- Create an executable Bash script for database backups.
-- Configure Cron to schedule automatic backups.
-- Document the infrastructure, configurations, and operational procedures.
-- Demonstrate the system's functionality during a live defense.
+The infrastructure uses Ubuntu Server running inside Oracle VirtualBox. Docker Compose manages two connected containers: WordPress as the web application and MySQL as the database.
 
-## Project Architecture
+The server is administered remotely using SSH through Windows Command Prompt. Security is supported by UFW firewall rules and restricted application port bindings. Automated database backups are handled by a custom Bash script scheduled through Cron.
 
-The system consists of the following infrastructure components:
+## 2. Project Objectives
 
-| Component | Technology | Purpose |
-|---|---|---|
-| Host Computer | Windows 11 | Runs the virtualization environment |
-| Hypervisor | Oracle VirtualBox | Hosts the Ubuntu Server virtual machine |
-| Guest Operating System | Ubuntu Server 24.04 LTS | Provides the Linux server environment |
-| Container Platform | Docker Engine | Runs isolated application containers |
-| Container Management | Docker Compose | Defines and manages the application stack |
-| Web Application | WordPress | Provides the website and administration interface |
-| Database | MariaDB | Stores WordPress application data |
-| Persistent Storage | Docker Named Volumes | Preserves application and database files |
-| Firewall | UFW | Configures host-based traffic restrictions |
-| Automation | Bash and Cron | Performs and schedules database backups |
-| Remote Administration | OpenSSH | Allows command-line server administration |
+The project aims to:
 
-### Architecture Diagram
+1. Design and deploy a virtualized Ubuntu Server infrastructure.
+2. Configure network connectivity and SSH remote administration.
+3. Install and configure Docker Engine and Docker Compose.
+4. Deploy a multi-tier WordPress and MySQL application.
+5. Implement Docker persistent volumes for data preservation.
+6. Configure UFW firewall security with a default-deny incoming policy.
+7. Create a Bash script for automated database backups.
+8. Schedule database backups through Cron.
+9. Verify database backup integrity and restoration.
+10. Document the entire infrastructure for operational maintenance and live demonstration.
 
-![CloudNova Architecture](architecture-diagram.png)
+## 3. Technologies Used
 
-## Deployment Overview
+| Technology | Purpose |
+|---|---|
+| Windows 11 | Physical host operating system |
+| Oracle VirtualBox | Virtual machine hypervisor |
+| Ubuntu Server 26.04.1 LTS | Linux server operating system |
+| OpenSSH | Remote server administration |
+| Docker Engine | Container runtime |
+| Docker Compose | Multi-container deployment |
+| WordPress | Web application |
+| MySQL 8.0 | Relational database |
+| Docker Volumes | Persistent data storage |
+| UFW | Host-based firewall |
+| Bash | Database backup automation |
+| Cron | Scheduled backup execution |
+| GitHub | Source code and technical documentation |
 
-The infrastructure was deployed through the following stages:
+## 4. Virtual Machine Configuration
 
-1. Created an Ubuntu Server virtual machine using Oracle VirtualBox.
-2. Configured NAT networking and port forwarding for SSH and HTTP access.
-3. Installed Docker Engine and Docker Compose.
-4. Created a Docker Compose YAML file defining the WordPress and MariaDB services.
-5. Configured environment variables and persistent volumes.
-6. Started the application containers using Docker Compose.
-7. Accessed the WordPress installation interface from the Windows host.
-8. Configured UFW firewall policies and allowed the required ports.
-9. Created and tested a custom MariaDB backup script.
-10. Installed a Cron Job to schedule database backups.
+The Ubuntu Server virtual machine was configured using the following resources:
 
-## Networking Configuration
+| Resource | Configuration |
+|---|---|
+| VM Name | Ubuntu-Server-CloudNova |
+| Operating System | Ubuntu Server 26.04.1 LTS |
+| Memory | 3072 MB |
+| Processors | 2 |
+| Virtual Hard Disk | 25 GB |
+| Network | NAT with port forwarding |
+| SSH Host Port | 2222 |
+| SSH Guest Port | 22 |
 
-| Service | Port | Purpose |
-|---|---|---|
-| SSH | Guest 22 / Host 2222 | Remote administration through NAT port forwarding |
-| WordPress | 8080 | Access to the local web application |
-| MariaDB | 3306 (internal only) | Database communication between containers |
+These settings were selected to provide a functional demonstration environment while considering the limitations of the host laptop.
 
-The Windows host accesses WordPress at:
+## 5. System Architecture
 
-`http://127.0.0.1:8080`
+The system follows a two-tier application architecture.
 
-The database is not directly published through a host port.
+### Web Application Tier
 
-## Security Implementation
+The WordPress container handles website content, user interactions, and administrative functions.
 
-The server uses UFW with the following configuration:
+### Database Tier
 
-- Default incoming policy: Deny
-- Default outgoing policy: Allow
-- SSH (TCP 22): Allowed
-- Web application (TCP 8080): Allowed
+The MySQL container stores WordPress information, including posts, accounts, and configuration records.
 
-Database credentials are stored in a protected `.env` file, which is excluded from the public repository.
+### Infrastructure Layer
 
-**Security limitation:** Docker-published ports can bypass normal UFW traffic filtering. This implementation is intended for a locally isolated laboratory demonstration. Additional security measures, including Docker-aware firewall filtering and HTTPS, would be needed for production deployment.
+Ubuntu Server hosts the Docker environment, while Oracle VirtualBox provides virtualization.
 
-## Automation and Backup
+### Security and Operations
 
-A custom Bash script named `automation-script.sh` performs a MariaDB database backup and saves it as a timestamped SQL file.
+UFW controls host firewall rules, SSH provides remote administration, Docker volumes preserve data, and Bash with Cron provides scheduled database backups.
 
-The script was successfully tested manually and generated a nonempty database backup file.
 
-The scheduled Cron Job is:
+## 6. Infrastructure Deployment
 
-```cron
-0 2 * * * /home/cyrus11/cloudnova/automation-script.sh >> /var/log/cloudnova-backup.log 2>&1
+The project uses a Docker Compose YAML configuration file to define and manage the application services.
+
+### Deployment Commands
+
+Navigate to the project directory:
+
+```bash
+cd /home/cloudnovaadmin/cloudnova-enterprise
 ```
 
-This schedule is configured for daily execution at 2:00 AM Philippine time, provided the Ubuntu virtual machine is running.
+Validate the configuration:
 
-Manual backup execution has been verified. Successful scheduled execution and restoration are separate verification activities.
+```bash
+sudo docker compose config --quiet
+```
 
-## Monitoring and Maintenance
+Start the containers:
 
-The following commands are used to inspect the infrastructure:
+```bash
+sudo docker compose up -d
+```
+
+Verify their status:
 
 ```bash
 sudo docker compose ps
-sudo docker compose logs --tail=30
-sudo docker stats
+```
+
+The deployment contains two main containers:
+
+- `cloudnova-wordpress`
+- `cloudnova-database`
+
+The WordPress container is connected to MySQL through an internal Docker network.
+
+The application publishes its web port only to Ubuntu's loopback interface.
+
+## 7. Persistent Storage
+
+Two Docker named volumes were configured:
+
+- `cloudnova-enterprise_mysql_data`
+- `cloudnova-enterprise_wordpress_data`
+
+These volumes store database information and WordPress application files separately from the containers' writable layers.
+
+### Persistence Test
+
+A WordPress post entitled **CloudNova Persistent Storage Test** was created and published.
+
+Both containers were restarted using:
+
+```bash
+sudo docker compose restart
+```
+
+After the restart, the test post remained available.
+
+This demonstrated that application data survives container restarts.
+
+## 8. Firewall Security
+
+UFW was configured using the principle of least privilege.
+
+The configuration includes:
+
+- Default deny for incoming traffic.
+- Default allow for outgoing traffic.
+- SSH access permitted on TCP port 22.
+- WordPress web port bound to Ubuntu's loopback interface.
+- No database port directly published to the host.
+
+Firewall verification:
+
+```bash
 sudo ufw status verbose
-systemctl is-active cron
+```
+
+This configuration reduces unnecessary exposure of the services.
+
+## 9. Automated Database Backup
+
+A custom Bash script named `automation-script.sh` was created to export and compress the WordPress MySQL database.
+
+The script:
+
+1. Reads the database password from a private environment file.
+2. Exports the WordPress database using `mysqldump`.
+3. Compresses the exported SQL data.
+4. Tests the compressed archive.
+5. Saves the completed backup with a timestamp.
+
+Execute the script:
+
+```bash
+sudo ./automation-script.sh
+```
+
+View backup files:
+
+```bash
 sudo ls -lh backups/
 ```
 
-## Project Files
+Only database records are included in this SQL backup. WordPress media files require separate backup procedures.
 
-| File | Description |
+## 10. Cron Job Scheduling
+
+The database backup script was configured to execute automatically every day at 2:00 AM Philippine time.
+
+The configured Cron schedule is:
+
+```cron
+0 2 * * * /home/cloudnovaadmin/cloudnova-enterprise/automation-script.sh >> /home/cloudnovaadmin/cloudnova-enterprise/backup-cron.log 2>&1
+```
+
+Verify the schedule:
+
+```bash
+sudo crontab -l
+```
+
+Verify the Cron service:
+
+```bash
+sudo systemctl is-active cron
+```
+
+The server timezone was configured to `Asia/Manila`.
+
+Actual scheduled execution requires the Ubuntu virtual machine to remain running at the scheduled time.
+
+## 11. Disaster Recovery Testing
+
+A separate MySQL database named `cloudnova_recovery_test` was created.
+
+A compressed MySQL backup was restored into this database to test recovery without overwriting the live WordPress database.
+
+The recovered database was verified by checking its WordPress tables and searching for the test post.
+
+The test confirmed that the backup contained recoverable application records.
+
+## 12. Testing and Verification
+
+| Test | Result |
 |---|---|
-| README.md | Project overview and implementation summary |
-| architecture-diagram.png | Network topology and infrastructure architecture |
-| docker-compose.yml | Multi-tier container configuration |
-| automation-script.sh | Automated MariaDB database backup script |
-| operational-manual.md | Infrastructure deployment, operation, and maintenance instructions |
-| final-reflection.md | Personal reflection on Laboratory Activities 01–10 |
-| .env.example | Example configuration without actual passwords |
-| .gitignore | Prevents sensitive files and backups from being committed |
+| Ubuntu Server installation | Passed |
+| SSH remote connection | Passed |
+| Docker installation | Passed |
+| Docker Compose deployment | Passed |
+| WordPress installation | Passed |
+| MySQL connection | Passed |
+| Persistent storage restart test | Passed |
+| UFW firewall configuration | Passed |
+| Manual Bash backup execution | Passed |
+| Cron configuration | Passed |
+| SQL backup integrity verification | Passed |
+| Database restoration test | Passed |
 
-## Skills Learned
+Cron's active configuration was verified. Successful unattended scheduled execution should be confirmed separately using backup logs.
 
-This project reinforced my understanding of Linux server administration, virtualization, container deployment, persistent storage, network configuration, firewall management, Bash automation, Cron scheduling, troubleshooting, and technical documentation.
+## 13. Project Limitations
 
-It also demonstrated the importance of integrating individual cloud computing technologies into a single functioning infrastructure.
+This project is a local private-cloud proof of concept and is not a fully production-hardened enterprise deployment.
 
-## Conclusion
+Current limitations include:
 
-The CloudNova Private Web Hosting Infrastructure demonstrates the integration of a Linux virtual machine, multi-container application deployment, persistent storage, host-based security configuration, and operational automation.
+- Resource limitations of the physical laptop.
+- Dependence on VirtualBox and the host machine being powered on.
+- Database-only automated backups.
+- No off-site backup replication.
+- Local SSH-tunneled web access rather than public HTTPS hosting.
+- Additional monitoring and credential management improvements are required for production use.
 
-The project serves as a practical foundation for understanding enterprise cloud infrastructure design, system administration, and DevOps principles.
+## 14. Conclusion
 
-The solution is a local laboratory prototype and would require additional hardening, tested disaster recovery, and availability planning before production use.
+The CloudNova Enterprise Web Portal successfully demonstrates the deployment and operation of a virtualized, containerized, multi-tier web application.
+
+The project integrates the major concepts learned throughout the Cloud Computing laboratory activities, including virtualization, Linux administration, container deployment, security, data persistence, automation, and disaster recovery.
+
+The completed infrastructure provides a practical demonstration of how different cloud computing technologies work together to support a functional application.
+
+---
+
+**CCM101 – Cloud Computing**  
+**Laboratory 10: The Enterprise Cloud Architect**
