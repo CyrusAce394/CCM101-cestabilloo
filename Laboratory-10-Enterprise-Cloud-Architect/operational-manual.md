@@ -1,428 +1,510 @@
-# CloudNova Private Web Hosting Infrastructure
+# CloudNova Enterprise Web Portal
 ## Operational Manual
 
-**Course:** CCM101 – Cloud Computing  
-**Mission:** Laboratory 10 – The Enterprise Cloud Architect  
-**Infrastructure:** Ubuntu Server, Docker Compose, WordPress and MariaDB  
-**Deployment Type:** Local private cloud laboratory
+**Project:** CloudNova Enterprise Web Portal  
+**Laboratory:** 10 – The Enterprise Cloud Architect  
+**Subject:** CCM101 – Cloud Computing  
+**Operating System:** Ubuntu Server 26.04.1 LTS
 
 ---
 
 ## 1. Introduction
 
-This operational manual provides instructions for deploying, operating, securing, monitoring, and maintaining the CloudNova Private Web Hosting Infrastructure.
+This operational manual provides the procedures required to deploy, administer, secure, maintain, back up, and troubleshoot the CloudNova Enterprise Web Portal.
 
-The system is hosted on an Ubuntu Server virtual machine running inside Oracle VirtualBox. Its main purpose is to demonstrate an integrated cloud infrastructure consisting of a web application, database, persistent storage, firewall configuration, and automated operational tasks.
+The infrastructure consists of an Ubuntu Server virtual machine hosting a Docker Compose application with WordPress and MySQL services.
 
-The infrastructure is intended for learning and local demonstration. It is not a public production hosting environment.
+This documentation is intended to assist administrators in understanding the system's configuration and performing basic operational tasks.
 
-## 2. System Requirements
+## 2. Infrastructure Requirements
 
-### Host Machine
+### Hardware Requirements
 
-| Component | Configuration |
-|---|---|
-| Laptop | Acer Aspire A314-35 |
-| Operating System | Windows 11 |
-| Processor | Intel Pentium Silver N6000 |
-| Memory | 8 GB RAM |
-| Hypervisor | Oracle VirtualBox |
+The demonstration environment uses a Windows host laptop with Oracle VirtualBox.
 
-### Guest Operating System
+The Ubuntu Server virtual machine was configured with:
 
-- Ubuntu Server 24.04 LTS
+- 3072 MB RAM
+- 2 virtual processors
+- 25 GB virtual hard disk
+- NAT network connectivity
+
+Actual resource requirements may vary according to application usage.
+
+### Software Requirements
+
+- Oracle VirtualBox
+- Ubuntu Server 26.04.1 LTS
+- OpenSSH Server
 - Docker Engine
 - Docker Compose plugin
-- OpenSSH Server
-- UFW Firewall
-- Cron Scheduler
+- UFW
+- Cron
+- WordPress and MySQL container images
 
-### Application Stack
+## 3. Starting the Infrastructure
 
-- WordPress web application
-- MariaDB database
-- Two Docker named volumes
-- Docker internal bridge network
+Open Oracle VirtualBox Manager.
 
-## 3. Infrastructure Architecture
+Select the virtual machine named `Ubuntu-Server-CloudNova` and start it.
 
-The infrastructure uses a two-tier architecture.
+Once Ubuntu has booted, log in using the configured Linux account.
 
-### Web Application Tier
+### Access Through Windows CMD
 
-WordPress receives browser requests and provides the application's interface. It communicates with MariaDB through an internal Docker network.
-
-### Database Tier
-
-MariaDB stores WordPress content, configuration data, and user information.
-
-The database does not publish port 3306 to the host machine.
-
-### Storage Layer
-
-Two Docker named volumes preserve application data:
-
-- `cloudnova_database_data`
-- `cloudnova_wordpress_data`
-
-These volumes allow data to remain available when containers are restarted or recreated, provided the volumes are not deleted.
-
-### Network Configuration
-
-VirtualBox NAT networking is used to provide outbound network access and selected inbound port forwarding.
-
-| Purpose | Host Port | Guest Port |
-|---|---|---|
-| SSH access | 2222 | 22 |
-| WordPress website | 8080 | 8080 |
-
-The configured host-side forwarding addresses use `127.0.0.1`.
-
-## 4. Ubuntu Server Provisioning
-
-1. Create a virtual machine in Oracle VirtualBox.
-2. Allocate appropriate system memory, virtual processors, and disk storage.
-3. Attach the Ubuntu Server 24.04 LTS installation ISO.
-4. Install Ubuntu Server without a graphical desktop.
-5. Create a standard administrator account.
-6. Install and enable OpenSSH.
-7. Configure NAT networking and the required port-forwarding rules.
-8. Update the operating system.
-
-Example update commands:
+Open Windows Command Prompt and enter:
 
 ```bash
-sudo apt update
-sudo apt upgrade -y
+ssh -p 2222 cloudnovaadmin@127.0.0.1
 ```
 
-Verify the operating system:
+Authenticate using the Ubuntu Server account password.
+
+After a successful login, the terminal should display an Ubuntu shell prompt.
+
+## 4. Application Deployment
+
+Navigate to the project directory:
 
 ```bash
-lsb_release -a
-hostname
-free -h
-df -h
+cd /home/cloudnovaadmin/cloudnova-enterprise
 ```
 
-## 5. Remote Server Administration
-
-SSH allows administrators to work with the Ubuntu Server from Windows Terminal.
-
-Connection command from the Windows host:
-
-```powershell
-ssh -p 2222 cyrus11@127.0.0.1
-```
-
-The virtual machine must be powered on for this connection to succeed.
-
-## 6. Docker Environment
-
-Docker Engine and Docker Compose are installed using Docker's official Ubuntu repository.
-
-Verify installation:
+Confirm the Compose file exists:
 
 ```bash
-sudo docker --version
-sudo docker compose version
-sudo docker run hello-world
+ls -l docker-compose.yml
 ```
 
-The `hello-world` container confirms that Docker can download and execute a container image.
+Ensure the private `.env` file exists and contains the database password configured for the persistent MySQL instance.
 
-## 7. Application Deployment
+Do not overwrite an existing database password with a newly generated password when using the existing MySQL volume.
 
-The application project is stored in:
-
-```text
-/home/cyrus11/cloudnova
-```
-
-The main deployment files are:
-
-- `docker-compose.yml`
-- `.env`
-- `automation-script.sh`
-
-The `.env` file contains environment variables used by MariaDB and WordPress. It must not be uploaded to a public GitHub repository.
-
-### Starting the Application
+Validate the Compose configuration:
 
 ```bash
-cd ~/cloudnova
+sudo docker compose config --quiet
+```
+
+Start the application:
+
+```bash
 sudo docker compose up -d
 ```
 
-### Checking Container Status
+Check the services:
 
 ```bash
 sudo docker compose ps
 ```
 
-Expected application services:
+Both WordPress and MySQL should be running.
 
-- `db`
-- `wordpress`
+## 5. Accessing WordPress
 
-### Accessing WordPress
+WordPress is published on Ubuntu's loopback address at port 8080.
 
-Open the following address from the Windows host browser:
-
-```text
-http://127.0.0.1:8080
-```
-
-Complete the WordPress installation process and log in using the administrator credentials.
-
-## 8. Persistent Data Management
-
-Docker named volumes are used to preserve the WordPress application files and MariaDB data.
-
-Check existing volumes:
+From a separate Windows Command Prompt, create an SSH tunnel:
 
 ```bash
-sudo docker volume ls
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8888:127.0.0.1:8080 -p 2222 cloudnovaadmin@127.0.0.1
 ```
 
-Inspect the application containers:
+Keep the tunnel open.
 
-```bash
-sudo docker compose ps
-```
+Open the browser and navigate to:
 
-### Important Data Protection Rule
+`http://127.0.0.1:8888/wp-admin/`
 
-Avoid executing the following command unless intentionally removing the application volumes:
+Log in using the configured WordPress administrator account.
 
-```bash
-sudo docker compose down -v
-```
+If the page fails to load, verify the SSH tunnel and Docker container status.
 
-The `-v` option can delete the named volumes and permanently remove stored application data.
+## 6. Container Management
 
-For a persistence test, create a WordPress post, reboot the VM, and verify that the post remains available after the containers restart.
-
-## 9. Security Configuration
-
-The Ubuntu Server uses UFW with a default-deny incoming policy.
-
-### Firewall Commands
-
-Allow SSH:
-
-```bash
-sudo ufw allow 22/tcp
-```
-
-Allow the WordPress application port:
-
-```bash
-sudo ufw allow 8080/tcp
-```
-
-Apply default security policies:
-
-```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-```
-
-Activate UFW:
-
-```bash
-sudo ufw enable
-```
-
-Verify the rules:
-
-```bash
-sudo ufw status verbose
-```
-
-The configuration permits SSH administration and web application access while denying other incoming traffic under UFW's host filtering policy.
-
-**Important security consideration:** Docker's published ports may bypass conventional UFW filtering. Network isolation is additionally supported by VirtualBox NAT and restricting host port forwarding to the Windows loopback interface. Separate connectivity testing is required to confirm effective access restrictions.
-
-### Additional Security Practices
-
-- Keep operating system packages updated.
-- Use strong, unique administrator passwords.
-- Protect the `.env` file with restrictive permissions.
-- Do not publish database credentials.
-- Keep MariaDB accessible only through the Docker network.
-- Avoid exposing the local HTTP demonstration to the public internet.
-- Add TLS, Docker-aware firewall rules, and further hardening before any production deployment.
-
-## 10. Backup Automation
-
-Database backups are handled by the executable script:
-
-```text
-automation-script.sh
-```
-
-The script creates a timestamped SQL dump of the WordPress database and saves it under:
-
-```text
-/home/cyrus11/cloudnova/backups/
-```
-
-### Run a Manual Backup
-
-```bash
-cd ~/cloudnova
-sudo ./automation-script.sh
-```
-
-### Verify Backup Files
-
-```bash
-sudo ls -lh backups/
-```
-
-The script was manually tested successfully and generated nonempty SQL backup files.
-
-### Scheduled Backup
-
-The following root Cron Job schedules daily backup execution:
-
-```cron
-0 2 * * * /home/cyrus11/cloudnova/automation-script.sh >> /var/log/cloudnova-backup.log 2>&1
-```
-
-The server timezone is configured as `Asia/Manila`.
-
-This schedule is intended to execute every day at 2:00 AM Philippine time, while the VM is running.
-
-### Verify Cron
-
-```bash
-systemctl is-active cron
-sudo crontab -l
-```
-
-### Review Backup Logs
-
-```bash
-sudo tail -n 30 /var/log/cloudnova-backup.log
-```
-
-A manually successful backup is not sufficient to establish that an actual scheduled execution has occurred. Check the log and resulting backup file after a scheduled run.
-
-### Backup Scope and Limitations
-
-The script backs up MariaDB database contents. It does not include every WordPress file, plugin, theme, or uploaded media item.
-
-For complete disaster recovery, both WordPress storage and the database should be backed up and restored together. Copies should also be stored outside the VM to protect against virtual disk failure.
-
-## 11. Database Recovery Procedure
-
-Recovery should first be tested on an isolated test deployment to avoid overwriting important production data.
-
-General recovery procedure:
-
-1. Identify a known-good SQL backup.
-2. Verify that the WordPress and MariaDB versions are compatible with the backup.
-3. Stop application writes.
-4. Preserve the existing database before restoration.
-5. Import the database backup into the correct MariaDB database.
-6. Restart or reconnect the WordPress application as needed.
-7. Verify that users, posts, and other database records are restored.
-8. Test web application functionality.
-
-The generated SQL files provide backup material, but a successful recovery must be independently demonstrated.
-
-## 12. System Monitoring
-
-### Check Running Containers
+### Display Running Containers
 
 ```bash
 sudo docker compose ps
 ```
 
-### Inspect Container Resources
+### Start the Application
 
 ```bash
-sudo docker stats
+sudo docker compose up -d
 ```
 
-### Check Application Logs
-
-```bash
-sudo docker compose logs --tail=30 wordpress
-```
-
-### Check Database Logs
-
-```bash
-sudo docker compose logs --tail=30 db
-```
-
-### Check Server Memory
-
-```bash
-free -h
-```
-
-### Check Disk Usage
-
-```bash
-df -h /
-```
-
-### Check Firewall Configuration
-
-```bash
-sudo ufw status verbose
-```
-
-## 13. Maintenance Procedures
-
-### Restart Containers
+### Restart the Containers
 
 ```bash
 sudo docker compose restart
 ```
 
-### Stop Containers
+### Display Application Logs
 
 ```bash
-sudo docker compose stop
+sudo docker compose logs --tail=50 wordpress
 ```
 
-### Start Containers
+### Display Database Logs
 
 ```bash
-sudo docker compose up -d
+sudo docker compose logs --tail=50 database
 ```
 
-### Safely Shut Down Ubuntu
+### Check Container Resource Usage
+
+```bash
+sudo docker stats --no-stream
+```
+
+Avoid removing the named volumes during ordinary maintenance.
+
+The command `docker compose down -v` removes volumes and can destroy application data.
+
+## 7. Persistent Storage Management
+
+The infrastructure contains two named volumes:
+
+- `cloudnova-enterprise_mysql_data`
+- `cloudnova-enterprise_wordpress_data`
+
+The MySQL volume preserves database files.
+
+The WordPress volume preserves web application files, uploaded media, plugins, and other persistent application data.
+
+List volumes:
+
+```bash
+sudo docker volume ls
+```
+
+To demonstrate persistence, create a WordPress test post, restart the containers, and confirm that the post remains available.
+
+## 8. Firewall Management
+
+UFW is configured to block unsolicited incoming connections by default.
+
+### Inspect Firewall Status
+
+```bash
+sudo ufw status verbose
+```
+
+### Initial Firewall Configuration
+
+The following commands describe the established firewall configuration:
+
+```bash
+sudo ufw allow 22/tcp
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw enable
+```
+
+Allow SSH before enabling the firewall to reduce the risk of interrupting remote administration.
+
+The WordPress application uses a loopback-only published port, and MySQL is not directly published to the host.
+
+Docker's handling of published ports requires additional consideration beyond ordinary UFW rules when services are exposed on network interfaces.
+
+## 9. Database Backup Operations
+
+A Bash script named `automation-script.sh` is used to create compressed backups of the WordPress MySQL database.
+
+### Execute Backup Manually
+
+```bash
+cd /home/cloudnovaadmin/cloudnova-enterprise
+sudo ./automation-script.sh
+```
+
+### List Backup Files
+
+```bash
+sudo ls -lht backups/
+```
+
+Backups are stored as timestamped `.sql.gz` files.
+
+### Verify Backup Integrity
+
+Select the latest nonempty archive:
+
+```bash
+LATEST=$(sudo find backups -maxdepth 1 -name 'mysql_backup_*.sql.gz' -size +100c -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
+```
+
+Verify its gzip integrity:
+
+```bash
+sudo gzip -t "$LATEST"
+```
+
+Inspect the database definitions:
+
+```bash
+sudo gzip -cd "$LATEST" | grep -m 1 'CREATE TABLE'
+```
+
+A successful integrity test does not replace an actual database restoration test.
+
+These SQL backups do not include WordPress uploaded files and other media. A complete recovery strategy requires backing up the WordPress persistent volume separately.
+
+## 10. Automated Backup Scheduling
+
+The root Cron scheduler was configured to run the backup script every day at 2:00 AM Philippine time.
+
+The Cron entry is:
+
+```cron
+0 2 * * * /home/cloudnovaadmin/cloudnova-enterprise/automation-script.sh >> /home/cloudnovaadmin/cloudnova-enterprise/backup-cron.log 2>&1
+```
+
+### Verify the Cron Schedule
+
+```bash
+sudo crontab -l
+```
+
+### Check the Cron Service
+
+```bash
+sudo systemctl is-active cron
+```
+
+### Check the Timezone
+
+```bash
+timedatectl
+```
+
+The server should use `Asia/Manila`.
+
+### Inspect Scheduled Backup Logs
+
+```bash
+sudo tail -n 30 /home/cloudnovaadmin/cloudnova-enterprise/backup-cron.log
+```
+
+Cron schedules operate only while the Ubuntu virtual machine and the Cron service are running.
+
+The configured schedule and active service were verified during development. Actual scheduled execution should be confirmed using the generated logs and backup timestamps.
+
+## 11. Disaster Recovery Procedure
+
+The backup restoration process was tested using a separate database named `cloudnova_recovery_test`.
+
+This test database was used to avoid overwriting the live WordPress database.
+
+The recovery procedure consists of:
+
+1. Selecting a validated database backup.
+2. Preparing an isolated MySQL recovery database.
+3. Importing the SQL statements from the backup archive.
+4. Verifying the restored WordPress tables.
+5. Checking application records in the recovered database.
+
+### Inspect the Existing Recovery Database
+
+Open the MySQL console:
+
+```bash
+sudo docker compose exec database mysql -u root -p
+```
+
+Enter the MySQL root password privately.
+
+Run:
+
+```sql
+SHOW TABLES FROM cloudnova_recovery_test;
+```
+
+Verify the test record:
+
+```sql
+SELECT ID, post_title
+FROM cloudnova_recovery_test.wp_posts
+WHERE post_title = 'CloudNova Persistent Storage Test';
+```
+
+Exit the database console:
+
+```sql
+exit;
+```
+
+The laboratory recovery test successfully restored WordPress tables and the persistent storage test post.
+
+Do not restore an unverified backup directly over the live WordPress database.
+
+## 12. System Monitoring
+
+### Memory Usage
+
+```bash
+free -h
+```
+
+### Disk Usage
+
+```bash
+df -h /
+```
+
+### CPU and Process Monitoring
+
+```bash
+top
+```
+
+Press `q` to exit the monitoring screen.
+
+### Container Resource Usage
+
+```bash
+sudo docker stats --no-stream
+```
+
+### Docker Service Status
+
+```bash
+sudo systemctl is-active docker
+```
+
+### Web Application Availability
+
+Inside Ubuntu:
+
+```bash
+curl -I http://127.0.0.1:8080
+```
+
+An HTTP response confirms that the web server is responding, although the application should also be tested through the browser.
+
+## 13. Troubleshooting Guide
+
+### Problem: Docker Compose Cannot Find the Configuration File
+
+Cause: The terminal is outside the project directory.
+
+Solution:
+
+```bash
+cd /home/cloudnovaadmin/cloudnova-enterprise
+```
+
+Then rerun the Docker Compose command.
+
+### Problem: WordPress Cannot Be Accessed From Windows
+
+Possible causes include an inactive SSH tunnel, stopped containers, or a local port conflict.
+
+Verify:
+
+```bash
+sudo docker compose ps
+```
+
+Confirm the SSH tunnel is running on Windows port 8888.
+
+### Problem: MySQL Connection Failed
+
+Check the database container:
+
+```bash
+sudo docker compose logs --tail=50 database
+```
+
+Verify that the application configuration uses the correct database credentials and container service name.
+
+Do not replace the `.env` password without understanding how the existing MySQL volume was initialized.
+
+### Problem: Database Backup Fails
+
+Check that the database container is running.
+
+Confirm the private `.env` file exists.
+
+Inspect the backup script and verify the `mysqldump` command includes:
+
+```bash
+--single-transaction --no-tablespaces
+```
+
+### Problem: Cron Backup Does Not Run
+
+Check Cron status:
+
+```bash
+sudo systemctl is-active cron
+```
+
+Verify the root Cron schedule:
+
+```bash
+sudo crontab -l
+```
+
+Inspect the backup log and confirm that the virtual machine was running at the scheduled time.
+
+## 14. Security Considerations
+
+The administrator should:
+
+- Protect SSH, database, and WordPress passwords.
+- Avoid committing `.env` files to GitHub.
+- Keep database backup files private.
+- Review firewall rules regularly.
+- Update Ubuntu and container images during scheduled maintenance.
+- Verify backups and periodically test restoration.
+- Avoid exposing the MySQL container directly to external networks.
+- Use HTTPS and stronger credential management for any production deployment.
+
+## 15. Shutdown and Restart Procedure
+
+To shut down Ubuntu safely:
 
 ```bash
 sudo shutdown -h now
 ```
 
-When Ubuntu shuts down properly, its virtual disk preserves configuration files, installed services, and Docker volumes.
+After restarting the VM, check:
 
-The WordPress website becomes temporarily unavailable while the virtual machine is powered off.
+```bash
+sudo docker compose ps
+```
 
-## 14. Basic Troubleshooting
+The Compose services use the `unless-stopped` restart policy.
 
-| Problem | Possible Cause | Suggested Action |
-|---|---|---|
-| WordPress does not load | Container stopped or port forwarding incorrect | Check `docker compose ps` and VirtualBox NAT rules |
-| SSH connection refused | OpenSSH unavailable or VM off | Start the VM and verify SSH |
-| Database connection error | MariaDB stopped or credentials inconsistent | Check database logs and `.env` configuration |
-| Container image download fails | Network or registry connection problem | Verify DNS, internet access, and retry the image pull |
-| Cron backup fails | Wrong script interpreter, missing permissions, or database problem | Check shebang, execution permissions, and Cron logs |
-| Low system performance | Limited VM CPU or memory | Inspect `top`, `free -h`, and `docker stats` |
+If necessary, start them with:
 
+```bash
+sudo docker compose up -d
+```
 
-## 15. Conclusion
+Application data should remain available because the containers use persistent volumes.
 
-The CloudNova Private Web Hosting Infrastructure integrates virtualization, containerization, persistent storage, network administration, host firewall configuration, and automation into one local cloud computing environment.
+## 16. Operational Limitations
 
-This operational manual provides instructions for maintaining and troubleshooting the system while highlighting the importance of documentation, reliable backups, and security verification.
+The system is a local private-cloud proof of concept.
 
-The implementation demonstrates core enterprise cloud architecture concepts in a laboratory environment, rather than claiming full production readiness.
+It depends on the physical Windows host, VirtualBox, and Ubuntu Server remaining operational.
+
+The current automated backup process protects database data only. Full application recovery would also require WordPress file backups.
+
+Further production improvements would include off-site backups, centralized monitoring, HTTPS, credential rotation, and additional security controls.
+
+## 17. Conclusion
+
+The CloudNova Enterprise Web Portal demonstrates the operational management of a containerized multi-tier application.
+
+The infrastructure combines Ubuntu Server, Docker Compose, persistent storage, UFW firewall security, Bash automation, Cron scheduling, and tested MySQL database recovery.
+
+This manual provides the essential procedures needed to operate and maintain the laboratory environment.
+
+---
+
+**CloudNova Enterprise Web Portal**  
+**CCM101 – Laboratory 10**
