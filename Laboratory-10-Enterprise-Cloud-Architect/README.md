@@ -255,20 +255,7 @@ The test confirmed that the backup contained recoverable application records.
 
 Cron's active configuration was verified. Successful unattended scheduled execution should be confirmed separately using backup logs.
 
-## 13. Project Limitations
-
-This project is a local private-cloud proof of concept and is not a fully production-hardened enterprise deployment.
-
-Current limitations include:
-
-- Resource limitations of the physical laptop.
-- Dependence on VirtualBox and the host machine being powered on.
-- Database-only automated backups.
-- No off-site backup replication.
-- Local SSH-tunneled web access rather than public HTTPS hosting.
-- Additional monitoring and credential management improvements are required for production use.
-
-## 14. Conclusion
+## 13. Conclusion
 
 The CloudNova Enterprise Web Portal successfully demonstrates the deployment and operation of a virtualized, containerized, multi-tier web application.
 
